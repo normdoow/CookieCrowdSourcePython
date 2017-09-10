@@ -25,12 +25,13 @@ def charge():
     charge = stripe.Charge.create(
         amount = amount,
         currency = "usd",
-        customer = '12345',
+        #customer = '12345',
         description = "Testing out the charge",
         source = source,
         shipping = shipping)
 
     return "Charge successfully created"
+
 
 def retrieveCustomerId():
     if 'customerId' in session:
@@ -42,9 +43,15 @@ def retrieveCustomerId():
         session['customerid'] = customer.id
         return customer.id
 
+
+
+@app.route('/is_cook_available', methods = ['GET'])
+def isCookAvailable():
+    return "True"             #this just returns true of false for if the cook is available to sell cookies
+
 # run the app.
 if __name__ == "__main__":
     # Setting debug to True enables debug output. This line should be
     # removed before deploying a production app.
     app.debug = True
-    app.run()
+    app.run(host='0.0.0.0')
