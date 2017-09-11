@@ -9,23 +9,29 @@ app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 token = 123#request.form['stripeToken'] # Using Flask
 
 
-@app.route('/ephemeral_keys', methods = ['GET'])    #TODO: should be a post eventually
+@app.route('/ephemeral_keys', methods = ['POST', 'GET'])
 def issue_key():
     api_version = request.args['api_version']
-    customerId = retrieveCustomerId()
-    key = stripe.EphemeralKey.create(customer = customerId, api_version = "2017-05-25")
+    customerId = request.args['customer_id']
+    if customerId == "":
+        cutomerId = retrieveCustomerId()
+
+    key = stripe.EphemeralKey.create(customer = "cus_BNMtq7s2Ew0lyw", api_version = api_version)
     return jsonify(key)
 
-@app.route('/charge', methods = ['GET'])            #TODO: should be a post eventually
+@app.route('/charge', methods = ['POST', 'GET'])            #TODO: should be a post eventually
 def charge():
     amount = request.args['amount']
     source = request.args['source']
     shipping = request.args['shipping']
+    customerId = request.args['customerId']
+    if customerId == "":
+        cutomerId = retrieveCustomerId()
 
     charge = stripe.Charge.create(
         amount = amount,
         currency = "usd",
-        #customer = '12345',
+        customer = customerId,
         description = "Testing out the charge",
         source = source,
         shipping = shipping)
@@ -40,10 +46,16 @@ def retrieveCustomerId():
         customer = stripe.Customer.create(
                                             #source=token,
                                             description="test Customer")
-        session['customerid'] = customer.id
+        session['customerId'] = customer.id
         return customer.id
 
 
+@app.route('/create_customer', methods = ['GET'])
+def createCustomer():
+    customer = stripe.Customer.create(
+                                        #source=token,
+                                        description="test Customer")
+    return customer.id
 
 @app.route('/is_cook_available', methods = ['GET'])
 def isCookAvailable():
