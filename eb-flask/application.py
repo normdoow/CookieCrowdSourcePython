@@ -9,32 +9,54 @@ app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 token = 123#request.form['stripeToken'] # Using Flask
 
 
-@app.route('/ephemeral_keys', methods = ['POST', 'GET'])
+@app.route('/ephemeral_keys', methods = ['POST'])
 def issue_key():
-    api_version = request.args['api_version']
-    customerId = request.args['customer_id']
+    apiVersion = request.form['api_version']
+    customerId = request.form['customer_id']
     if customerId == "":
         cutomerId = retrieveCustomerId()
-
-    key = stripe.EphemeralKey.create(customer = "cus_BNMtq7s2Ew0lyw", api_version = api_version)
+                                                #TODO: this customerID needs to be changes
+    key = stripe.EphemeralKey.create(customer = customerId, api_version = apiVersion)
     return jsonify(key)
 
-@app.route('/charge', methods = ['POST', 'GET'])            #TODO: should be a post eventually
+@app.route('/email', methods = ['GET'])
+def email():
+    customer = stripe.Customer.retrieve("cus_BNMtq7s2Ew0lyw")
+    msg = MIMEText("This is a test email from Noah")
+
+    me = "noahbragg@cedarville.edu"
+    you = customer.email
+
+    # me == the sender's email address
+    # you == the recipient's email address
+    msg['Subject'] = 'Test Subject'
+    msg['From'] = me
+    msg['To'] = you
+
+    # Send the message via our own SMTP server.
+    s = smtplib.SMTP('localhost')
+    s.send_message(msg)
+    s.quit()
+    return customer.email
+
+@app.route('/charge', methods = ['POST'])
 def charge():
-    amount = request.args['amount']
-    source = request.args['source']
-    shipping = request.args['shipping']
-    customerId = request.args['customerId']
+    amount = request.form['amount']
+    source = request.form['source']
+    # shipping = request.form['shipping']
+    customerId = request.form['customer_id']
     if customerId == "":
         cutomerId = retrieveCustomerId()
-
+    #shipping is the one that is messed up
+    #needs to be the same customer
+    # customerId = "cus_BNMtq7s2Ew0lyw"
     charge = stripe.Charge.create(
         amount = amount,
         currency = "usd",
         customer = customerId,
         description = "Testing out the charge",
-        source = source,
-        shipping = shipping)
+        source = source)
+        # shipping = shipping)
 
     return "Charge successfully created"
 
@@ -54,12 +76,13 @@ def retrieveCustomerId():
 def createCustomer():
     customer = stripe.Customer.create(
                                         #source=token,
-                                        description="test Customer")
+                                        description="test Customer2")
     return customer.id
 
 @app.route('/is_cook_available', methods = ['GET'])
 def isCookAvailable():
     return "True"             #this just returns true of false for if the cook is available to sell cookies
+
 
 # run the app.
 if __name__ == "__main__":
