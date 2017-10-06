@@ -2,6 +2,7 @@ from flask import Flask, request, session, jsonify
 import stripe
 import smtplib
 from email.mime.text import MIMEText
+from validate_email import validate_email
 
 app = Flask(__name__)
 
@@ -33,11 +34,13 @@ def charge():
     source = request.form['source']
     # shipping = request.form['shipping']
     customerId = request.form['customer_id']
+    #TODO: get the customer email from the customer Object instead in the future
+    email = request.form['email']
+
     if customerId == "":
         cutomerId = retrieveCustomerId()
     #shipping is the one that is messed up
     #needs to be the same customer
-    # customerId = "cus_BNMtq7s2Ew0lyw"
     charge = stripe.Charge.create(
         amount = amount,
         currency = "usd",
@@ -46,36 +49,40 @@ def charge():
         source = source)
         # shipping = shipping)
 
-    sendCookEmail(customerId)
-    sendCustomerEmail(customerId)
+    # updateCustomerEmail(customerId, email)        #this didn't seem to do anything
+    sendCookEmail(customerId, email)
+    sendCustomerEmail(customerId, email)
     return "Charge successfully created"
 
+def updateCustomerEmail(customerId, email):
+    customer = stripe.Customer.retrieve(customerId)
+    customer.email = email
+    customer.save
 
 def retrieveCustomerId():
     if 'customerId' in session:
         return session['customerId']
     else:
-        customer = stripe.Customer.create(
-                                            #source=token,
-                                            description="test Customer")
+        customer = stripe.Customer.create(description="test Customer")
         session['customerId'] = customer.id
         return customer.id
 
-def sendCustomerEmail(customerId):
+def sendCustomerEmail(customerId, email):       #pass in the customer email becasue the shipping one is empty
     customer = stripe.Customer.retrieve(customerId)
     subject = "Thank you for Purchasing Yummy Hot Cookies!"
-    message = "Thank you for Purchasing Crowd Cookies!\n\nYou will recieve a dozen warm, choclate chip cookies delivered to you in 20 to 30 minutes. If you have any issues, please contact us at noahbragg@cedarville.edu or call (937)-901-6108.\n\n Please share Crowd Cookie with your friends that live in the area! We are just trying out this cool idea to see if people like it. Have them download the app here:\n\n Have a Great Day!\n\nNoah Bragg\nCrowd Cookie Team"
-    sendEmail(customer.email, subject, message)
+    message = "Thank you for Purchasing Crowd Cookies!\n\nYou will receive a dozen warm, chocolate chip cookies delivered to you in 30 minutes. If you have any issues, please contact us at noahbragg@cedarville.edu or call (937)-901-6108.\n\n Please share Crowd Cookie with your friends that live in the area! We are just trying out this cool idea to see if people like it. Have them download the app here:\n\n Have a Great Day!\n\nNoah Bragg\nCrowd Cookie Team"
+    if validate_email(email, verify=True):      #this is to check to make sure it is a valid email before trying to send to it
+        sendEmail(email, subject, message)
 
-def sendCookEmail(customerId):
+def sendCookEmail(customerId, customerEmail):
     customer = stripe.Customer.retrieve(customerId)
     to = "noahbragg@cedarville.edu,melissajoybragg@gmail.com"
     subject = "Someone Just Ordered Crowd Cookies!"
     customerName = str(customer.shipping.name)
-    customerEmail = str(customer.email)
+    # customerEmail = str(customer.email)
     customerPhone = str(customer.shipping.phone)
     customerAddress = "      " + str(customer.shipping.address.line1) + " " + str(customer.shipping.address.line2) + "\n      " + str(customer.shipping.address.city) + ", " + str(customer.shipping.address.state) + "  " + str(customer.shipping.address.postal_code)
-    message = "Customer Name: " + customerName + "\nCustomer Email: " + customerEmail + "\nCustomer Phone: " + customerPhone + "\nDelivery Address: \n" + customerAddress + "\n\nGet those 12 choclate chip cookies made and shipped over to them in 20 to 30 minutes!\n\nSincerely,\nCrowd Cookie Bot"
+    message = "Customer Name: " + customerName + "\nCustomer Email: " + customerEmail + "\nCustomer Phone: " + customerPhone + "\nDelivery Address: \n" + customerAddress + "\n\nGet those 12 chocolate chip cookies made and shipped over to them in 30 minutes!\n\nSincerely,\nCrowd Cookie Bot"
     sendEmail(to, subject, message)
 
 def sendEmail(to, subject, message):
@@ -91,7 +98,7 @@ def sendEmail(to, subject, message):
     msg['Subject'] = subject
     msg['From'] = sender
     msg['To'] = to
-
+    
     # Send the message via our own SMTP server.
     s = smtplib.SMTP('email-smtp.us-east-1.amazonaws.com', 587)
     s.starttls()
@@ -101,9 +108,7 @@ def sendEmail(to, subject, message):
 
 @app.route('/create_customer', methods = ['GET'])
 def createCustomer():
-    customer = stripe.Customer.create(
-                                        #source=token,
-                                        description="test Customer2")
+    customer = stripe.Customer.create(description="test Customer2")
     return customer.id
 
 @app.route('/is_cook_available', methods = ['GET'])
