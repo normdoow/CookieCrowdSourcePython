@@ -55,7 +55,7 @@ def charge():
     return "Charge successfully created"
 
 
-@app.route('/update_customer_address', methods = ['POST'])
+@app.route('/update_customer_address', methods = ['POST'])          #only used on Android right now
 def updateCustomerAddress():
     name = request.form['name']
     email = request.form['email']
@@ -67,17 +67,22 @@ def updateCustomerAddress():
     line2 = request.form['line_2']
     postalCode = request.form['postal_code']
 
+    ship = {}
+    ship['name'] = name
+    ship['phone'] = phone
+    address = {}
+    address['city'] = city
+    address['state'] = state
+    address['line1'] = line1
+    address['line2'] = line2
+    address['postal_code'] = postalCode
+    ship['address'] = address
+
     customer = stripe.Customer.retrieve(customerId)
     customer.email = email
-    customer.shipping.name = name
-    customer.shipping.phone = phone
-    customer.shipping.address.city = city
-    customer.shipping.address.state = state
-    customer.shipping.address.line1 = line1
-    customer.shipping.address.line2 = line2
-    customer.shipping.address.postal_code = postalCode
+    customer.shipping = ship
     customer.save()
-    return "success"
+    return "successful update"
 
 
 def updateCustomerEmail(customerId, email):
