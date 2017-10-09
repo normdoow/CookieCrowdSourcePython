@@ -54,10 +54,36 @@ def charge():
     sendCustomerEmail(customerId, email)
     return "Charge successfully created"
 
+
+@app.route('/update_customer_address', methods = ['POST'])
+def updateCustomerAddress():
+    name = request.form['name']
+    email = request.form['email']
+    phone = request.form['phone']
+    city = request.form['city']
+    state = request.form['state']
+    customerId = request.form['customer_id']
+    line1 = request.form['line_1']
+    line2 = request.form['line_2']
+    postalCode = request.form['postal_code']
+
+    customer = stripe.Customer.retrieve(customerId)
+    customer.email = email
+    customer.shipping.name = name
+    customer.shipping.phone = phone
+    customer.shipping.address.city = city
+    customer.shipping.address.state = state
+    customer.shipping.address.line1 = line1
+    customer.shipping.address.line2 = line2
+    customer.shipping.address.postal_code = postalCode
+    customer.save()
+    return "success"
+
+
 def updateCustomerEmail(customerId, email):
     customer = stripe.Customer.retrieve(customerId)
     customer.email = email
-    customer.save
+    customer.save()
 
 def retrieveCustomerId():
     if 'customerId' in session:
