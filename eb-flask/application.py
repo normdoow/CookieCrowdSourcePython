@@ -32,25 +32,24 @@ def email():
 def charge():
     amount = request.form['amount']
     source = request.form['source']
-    # shipping = request.form['shipping']
     customerId = request.form['customer_id']
-    #TODO: get the customer email from the customer Object instead in the future
     email = request.form['email']
 
     if customerId == "":
         cutomerId = retrieveCustomerId()
     #shipping is the one that is messed up
     #needs to be the same customer
-    charge = stripe.Charge.create(
-        amount = amount,
-        currency = "usd",
-        customer = customerId,
-        description = "Testing out the charge",
-        source = source)
-        # shipping = shipping)
+    if amount != "0":
+        charge = stripe.Charge.create(
+            amount = amount,
+            currency = "usd",
+            customer = customerId,
+            description = "Testing out the charge",
+            source = source)
+            # shipping = shipping)
 
     # updateCustomerEmail(customerId, email)        #this didn't seem to do anything
-    sendCookEmail(customerId, email)
+    sendCookEmail(customerId, email, amount == "0")
     sendCustomerEmail(customerId, email)
     return "Charge successfully created"
 
@@ -105,7 +104,7 @@ def sendCustomerEmail(customerId, email):       #pass in the customer email beca
     if validate_email(email, verify=True):      #this is to check to make sure it is a valid email before trying to send to it
         sendEmail(email, subject, message)
 
-def sendCookEmail(customerId, customerEmail):
+def sendCookEmail(customerId, customerEmail, isFree):
     customer = stripe.Customer.retrieve(customerId)
     to = "noahbragg@cedarville.edu,melissajoybragg@gmail.com"
     subject = "Someone Just Ordered Crowd Cookies!"
@@ -113,7 +112,11 @@ def sendCookEmail(customerId, customerEmail):
     # customerEmail = str(customer.email)
     customerPhone = str(customer.shipping.phone)
     customerAddress = "      " + str(customer.shipping.address.line1) + " " + str(customer.shipping.address.line2) + "\n      " + str(customer.shipping.address.city) + ", " + str(customer.shipping.address.state) + "  " + str(customer.shipping.address.postal_code)
-    message = "Customer Name: " + customerName + "\nCustomer Email: " + customerEmail + "\nCustomer Phone: " + customerPhone + "\nDelivery Address: \n" + customerAddress + "\n\nGet those 12 chocolate chip cookies made and shipped over to them in 30 minutes!\n\nSincerely,\nCrowd Cookie Bot"
+    freeText = ""
+    if isFree:
+        freeText = "This is a Free Order!! They got a good deal!\n\n"
+
+    message = freeText + "Customer Name: " + customerName + "\nCustomer Email: " + customerEmail + "\nCustomer Phone: " + customerPhone + "\nDelivery Address: \n" + customerAddress + "\n\nGet those 12 chocolate chip cookies made and shipped over to them in 30 minutes!\n\nSincerely,\nCrowd Cookie Bot"
     sendEmail(to, subject, message)
 
 def sendEmail(to, subject, message):
