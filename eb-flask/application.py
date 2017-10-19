@@ -1,4 +1,5 @@
 from flask import Flask, request, session, jsonify
+import boto3
 import stripe
 import smtplib
 from email.mime.text import MIMEText
@@ -8,6 +9,7 @@ app = Flask(__name__)
 
 stripe.api_key = "sk_test_L9QHJxvNGB737iSYHqkNxR5p"
 app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
+
 
 token = 123#request.form['stripeToken'] # Using Flask
 
@@ -37,8 +39,7 @@ def charge():
 
     if customerId == "":
         cutomerId = retrieveCustomerId()
-    #shipping is the one that is messed up
-    #needs to be the same customer
+
     if amount != "0":
         charge = stripe.Charge.create(
             amount = amount,
@@ -147,12 +148,27 @@ def createCustomer():
 
 @app.route('/is_cook_available', methods = ['GET'])
 def isCookAvailable():
-    return "True"             #this just returns true of false for if the cook is available to sell cookies
+    sqs = boto3.resource('sqs')
+    queue = sqs.get_queue_by_name(QueueName='data')
+    return queue.attributes.get('is_cook_available')
+    # return "True"        #this just returns true of false for if the cook is available to sell cookie
 
+@app.route('/set_cook', methods = ['GET'])
+def setIsCookAvailable():
+    param = request.args.get('val')
+    # queue = sqs.create_queue(QueueName='data', Attributes={'is_cook_available': 'True'})
+    sqs = boto3.resource('sqs')
+    queue = sqs.get_queue_by_name(QueueName='data')
+
+    if param == "True":
+        response = queue.set_attributes(Attributes={'is_cook_available': 'True'})
+    else:
+        response = queue.set_attributes(Attributes={'is_cook_available': 'False'})
+    return "successfully updated cooks availability"
 
 # run the app.
 if __name__ == "__main__":
     # Setting debug to True enables debug output. This line should be
     # removed before deploying a production app.
     app.debug = True
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0') #threaded=true
