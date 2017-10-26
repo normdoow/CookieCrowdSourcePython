@@ -1,17 +1,15 @@
 from flask import Flask, request, session, jsonify
-import boto3
+# import boto3
 import stripe
 import smtplib
 from email.mime.text import MIMEText
-from validate_email import validate_email
+# from validate_email import validate_email
+# from email_validator import validate_email, EmailNotValidError
 
 app = Flask(__name__)
 
 stripe.api_key = "sk_test_L9QHJxvNGB737iSYHqkNxR5p"
 app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
-
-
-token = 123#request.form['stripeToken'] # Using Flask
 
 
 @app.route('/ephemeral_keys', methods = ['POST'])
@@ -26,8 +24,8 @@ def issue_key():
 
 @app.route('/email', methods = ['GET'])
 def email():
-    sendCustomerEmail("cus_BNMtq7s2Ew0lyw")
-    sendCookEmail("cus_BNMtq7s2Ew0lyw")
+    # sendCustomerEmail("cus_BNMtq7s2Ew0lyw")
+    # sendCookEmail("cus_BNMtq7s2Ew0lyw")
     return "successfully sent email"
 
 @app.route('/charge', methods = ['POST'])
@@ -102,8 +100,14 @@ def sendCustomerEmail(customerId, email):       #pass in the customer email beca
     customer = stripe.Customer.retrieve(customerId)
     subject = "Thank you for Purchasing Yummy Hot Cookies!"
     message = "Thank you for Purchasing Crowd Cookies!\n\nYou will receive a dozen warm, chocolate chip cookies delivered to you in 30 minutes. If you have any issues, please contact us at noahbragg@cedarville.edu or call (937)-901-6108.\n\n Please share Crowd Cookie with your friends that live in the area! We are just trying out this cool idea to see if people like it. Have them download the app here:\n\n Have a Great Day!\n\nNoah Bragg\nCrowd Cookie Team"
-    if validate_email(email, verify=True):      #this is to check to make sure it is a valid email before trying to send to it
-        sendEmail(email, subject, message)
+    # if validate_email(email, verify=True):      #this is to check to make sure it is a valid email before trying to send to it
+    # try:
+    #     v = validate_email(email) # validate and get info
+    sendEmail(email, subject, message) 
+    # except EmailNotValidError as e:
+    print("email wasn't valid")
+        # email is not valid, exception message is human-readable
+        
 
 def sendCookEmail(customerId, customerEmail, isFree):
     customer = stripe.Customer.retrieve(customerId)
@@ -125,8 +129,8 @@ def sendEmail(to, subject, message):
 
     sender = "noahbragg@cedarville.edu"
 
-    EMAIL_HOST_USER = "AKIAIME6LLTOUKFDG2IA"
-    EMAIL_HOST_PASSWORD = "AqU75pwvORi2GnG2THYNq5KBbDKMiTCnrI3plq+YRCkw"
+    EMAIL_HOST_USER = ""
+    EMAIL_HOST_PASSWORD = ""
 
     # me == the sender's email address
     # you == the recipient's email address
@@ -148,22 +152,23 @@ def createCustomer():
 
 @app.route('/is_cook_available', methods = ['GET'])
 def isCookAvailable():
-    sqs = boto3.resource('sqs')
-    queue = sqs.get_queue_by_name(QueueName='data')
-    return queue.attributes.get('is_cook_available')
+    return "True"
+    # sqs = boto3.resource('sqs')
+    # queue = sqs.get_queue_by_name(QueueName='data')
+    # return queue.attributes.get('is_cook_available')
     # return "True"        #this just returns true of false for if the cook is available to sell cookie
 
 @app.route('/set_cook', methods = ['GET'])
 def setIsCookAvailable():
     param = request.args.get('val')
     # queue = sqs.create_queue(QueueName='data', Attributes={'is_cook_available': 'True'})
-    sqs = boto3.resource('sqs')
-    queue = sqs.get_queue_by_name(QueueName='data')
+    # sqs = boto3.resource('sqs')
+    # queue = sqs.get_queue_by_name(QueueName='data')
 
-    if param == "True":
-        response = queue.set_attributes(Attributes={'is_cook_available': 'True'})
-    else:
-        response = queue.set_attributes(Attributes={'is_cook_available': 'False'})
+    # if param == "True":
+    #     response = queue.set_attributes(Attributes={'is_cook_available': 'True'})
+    # else:
+    #     response = queue.set_attributes(Attributes={'is_cook_available': 'False'})
     return "successfully updated cooks availability"
 
 # run the app.
@@ -171,4 +176,5 @@ if __name__ == "__main__":
     # Setting debug to True enables debug output. This line should be
     # removed before deploying a production app.
     app.debug = True
-    app.run(host='0.0.0.0') #threaded=true
+    # app.run(threaded=True)
+    app.run(host='0.0.0.0')
