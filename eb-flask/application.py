@@ -3,8 +3,8 @@ from flask import Flask, request, session, jsonify
 import stripe
 import smtplib
 from email.mime.text import MIMEText
-# from validate_email import validate_email
-# from email_validator import validate_email, EmailNotValidError
+from pusher import Pusher
+from validate_email import validate_email
 
 app = Flask(__name__)
 
@@ -100,13 +100,8 @@ def sendCustomerEmail(customerId, email):       #pass in the customer email beca
     customer = stripe.Customer.retrieve(customerId)
     subject = "Thank you for Purchasing Yummy Hot Cookies!"
     message = "Thank you for Purchasing Crowd Cookies!\n\nYou will receive a dozen warm, chocolate chip cookies delivered to you in 30 minutes. If you have any issues, please contact us at noahbragg@cedarville.edu or call (937)-901-6108.\n\n Please share Crowd Cookie with your friends that live in the area! We are just trying out this cool idea to see if people like it. Have them download the app here:\n\n Have a Great Day!\n\nNoah Bragg\nCrowd Cookie Team"
-    # if validate_email(email, verify=True):      #this is to check to make sure it is a valid email before trying to send to it
-    # try:
-    #     v = validate_email(email) # validate and get info
-    sendEmail(email, subject, message) 
-    # except EmailNotValidError as e:
-    print("email wasn't valid")
-        # email is not valid, exception message is human-readable
+    if validate_email(email, verify=True):      #this is to check to make sure it is a valid email before trying to send to it
+        sendEmail(email, subject, message)
         
 
 def sendCookEmail(customerId, customerEmail, isFree):
@@ -170,6 +165,20 @@ def setIsCookAvailable():
     # else:
     #     response = queue.set_attributes(Attributes={'is_cook_available': 'False'})
     return "successfully updated cooks availability"
+
+@app.route('/notify_users', methods = ['GET'])
+def notifyUsers():
+    pusher = Pusher(app_id=u'', key=u'', secret=u'', cluster=u'')
+
+    pusher.notify(['cook_available'], {
+      'gcm': {
+        'notification': {
+          'title': 'Cooks are now available in your area. You can order Cookies!',
+          'icon': 'androidlogo'
+        }
+      }
+    })
+    return "Successfully pushed notification"
 
 # run the app.
 if __name__ == "__main__":
