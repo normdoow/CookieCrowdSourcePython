@@ -1,15 +1,13 @@
 from flask import Flask, request, session, jsonify
-# import boto3
 import stripe
 import smtplib
 from email.mime.text import MIMEText
 from pusher import Pusher
-from validate_email import validate_email
+# from validate_email import validate_email
+# from email_validator import validate_email, EmailNotValidError
 
 app = Flask(__name__)
 
-stripe.api_key = "sk_test_L9QHJxvNGB737iSYHqkNxR5p"
-app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 
 
 @app.route('/ephemeral_keys', methods = ['POST'])
@@ -24,9 +22,19 @@ def issue_key():
 
 @app.route('/email', methods = ['GET'])
 def email():
-    # sendCustomerEmail("cus_BNMtq7s2Ew0lyw")
-    # sendCookEmail("cus_BNMtq7s2Ew0lyw")
+    # sendCustomerEmail("cus_BNMtq7s2Ew0lyw", "blah@gmail.com")
+    # sendCookEmail("cus_BjreuxjdxTnqNs", "blah@gmail.com", True)
+    to = ["noahbragg@cedarville.edu", "melissajoybragg@gmail.com", "isaiahbragg2020@gmail.com"]
+    sendEmail(to, "test message", "This is a test email to see if I can send it to multiple recipients.")
     return "successfully sent email"
+
+@app.route('/send_new_baker_email', methods = ['GET'])
+def sendNewBakerEmail():
+    email= request.args.get('email')
+    to = ["noahbragg@cedarville.edu"]
+    sendEmail(to, "New Baker Interested!", "Hello Noah,\n\nThere is a new baker with email " + email + " who is interested in becoming a baker. Go ahead and give them some info and see if they would be a good fit to join the Crowd Cookie team!!!\n\nSincerely,\nCrowd Cookie Bot")
+    return "success sending email"
+
 
 @app.route('/charge', methods = ['POST'])
 def charge():
@@ -48,7 +56,7 @@ def charge():
             # shipping = shipping)
 
     # updateCustomerEmail(customerId, email)        #this didn't seem to do anything
-    sendCookEmail(customerId, email, amount == "0")
+    sendCookEmail(customerId, email, amount == "600")
     sendCustomerEmail(customerId, email)
     return "Charge successfully created"
 
@@ -99,14 +107,22 @@ def retrieveCustomerId():
 def sendCustomerEmail(customerId, email):       #pass in the customer email becasue the shipping one is empty
     customer = stripe.Customer.retrieve(customerId)
     subject = "Thank you for Purchasing Yummy Hot Cookies!"
-    message = "Thank you for Purchasing Crowd Cookies!\n\nYou will receive a dozen warm, chocolate chip cookies delivered to you in 30 minutes. If you have any issues, please contact us at noahbragg@cedarville.edu or call (937)-901-6108.\n\n Please share Crowd Cookie with your friends that live in the area! We are just trying out this cool idea to see if people like it. Have them download the app here:\n\n Have a Great Day!\n\nNoah Bragg\nCrowd Cookie Team"
-    if validate_email(email, verify=True):      #this is to check to make sure it is a valid email before trying to send to it
-        sendEmail(email, subject, message)
-        
+    message = "Thank you for Purchasing Crowd Cookies!\n\nYou will receive a dozen warm, chocolate chip cookies delivered to you in around 40 minutes. If you have any issues, please contact us at noahbragg@cedarville.edu or call (937)-901-6108.\n\nPlease share Crowd Cookie with your friends that live in the area! We are just trying out this cool idea to see if people like it. You can find the iOS app or Android app to share with them here: https://itunes.apple.com/us/app/crowd-cookie/id1301846845?mt=8 \n\nhttps://play.google.com/store/apps/details?id=shinzzerz.cookiecrowdsource\n\n Have a Great Day!\n\nNoah Bragg\nCrowd Cookie Team"
+    # if validate_email(email, verify=True):      #this is to check to make sure it is a valid email before trying to send to it
+    # try:
+    #     v = validate_email(email) # validate and get info
+    to = []
+    to.append(email)
+    sendEmail(to, subject, message)
+    # except EmailNotValidError as e:
+    #print("email wasn't valid")
+        # email is not valid, exception message is human-readable
+
 
 def sendCookEmail(customerId, customerEmail, isFree):
     customer = stripe.Customer.retrieve(customerId)
-    to = "noahbragg@cedarville.edu,melissajoybragg@gmail.com"
+
+    to = ["noahbragg@cedarville.edu", "melissajoybragg@gmail.com", "isaiahbragg2020@gmail.com"]
     subject = "Someone Just Ordered Crowd Cookies!"
     customerName = str(customer.shipping.name)
     # customerEmail = str(customer.email)
@@ -114,9 +130,9 @@ def sendCookEmail(customerId, customerEmail, isFree):
     customerAddress = "      " + str(customer.shipping.address.line1) + " " + str(customer.shipping.address.line2) + "\n      " + str(customer.shipping.address.city) + ", " + str(customer.shipping.address.state) + "  " + str(customer.shipping.address.postal_code)
     freeText = ""
     if isFree:
-        freeText = "This is a Free Order!! They got a good deal!\n\n"
+        freeText = "This is a $6 Order!! They got a good deal!\n\n"
 
-    message = freeText + "Customer Name: " + customerName + "\nCustomer Email: " + customerEmail + "\nCustomer Phone: " + customerPhone + "\nDelivery Address: \n" + customerAddress + "\n\nGet those 12 chocolate chip cookies made and shipped over to them in 30 minutes!\n\nSincerely,\nCrowd Cookie Bot"
+    message = freeText + "Customer Name: " + customerName + "\nCustomer Email: " + customerEmail + "\nCustomer Phone: " + customerPhone + "\nDelivery Address: \n" + customerAddress + "\n\nGet those 12 chocolate chip cookies made and shipped over to them in 40 minutes!\n\nSincerely,\nCrowd Cookie Bot"
     sendEmail(to, subject, message)
 
 def sendEmail(to, subject, message):
@@ -124,15 +140,13 @@ def sendEmail(to, subject, message):
 
     sender = "noahbragg@cedarville.edu"
 
-    EMAIL_HOST_USER = ""
-    EMAIL_HOST_PASSWORD = ""
 
     # me == the sender's email address
     # you == the recipient's email address
     msg['Subject'] = subject
     msg['From'] = sender
-    msg['To'] = to
-    
+    msg['To'] = ', '.join( to )
+
     # Send the message via our own SMTP server.
     s = smtplib.SMTP('email-smtp.us-east-1.amazonaws.com', 587)
     s.starttls()
@@ -147,33 +161,25 @@ def createCustomer():
 
 @app.route('/is_cook_available', methods = ['GET'])
 def isCookAvailable():
-    return "True"
-    # sqs = boto3.resource('sqs')
-    # queue = sqs.get_queue_by_name(QueueName='data')
-    # return queue.attributes.get('is_cook_available')
-    # return "True"        #this just returns true of false for if the cook is available to sell cookie
+    return "False"
+
+@app.route('/is_isaiah_available', methods = ['GET'])
+def isIsaiahAvailable():
+    return "False"
 
 @app.route('/set_cook', methods = ['GET'])
 def setIsCookAvailable():
     param = request.args.get('val')
-    # queue = sqs.create_queue(QueueName='data', Attributes={'is_cook_available': 'True'})
-    # sqs = boto3.resource('sqs')
-    # queue = sqs.get_queue_by_name(QueueName='data')
-
-    # if param == "True":
-    #     response = queue.set_attributes(Attributes={'is_cook_available': 'True'})
-    # else:
-    #     response = queue.set_attributes(Attributes={'is_cook_available': 'False'})
     return "successfully updated cooks availability"
 
 @app.route('/notify_users', methods = ['GET'])
 def notifyUsers():
-    pusher = Pusher(app_id=u'', key=u'', secret=u'', cluster=u'')
+    pusher = Pusher(app_id=u'422470', key=u'd05669f4df7a1f96f929', secret=u'67125152b0087bcd5a4c', cluster=u'us2')
 
     pusher.notify(['cook_available'], {
       'gcm': {
         'notification': {
-          'title': 'Cooks are now available in your area. You can order Cookies!',
+          'title': 'Cookies are now available!',
           'icon': 'androidlogo'
         }
       }
@@ -185,5 +191,5 @@ if __name__ == "__main__":
     # Setting debug to True enables debug output. This line should be
     # removed before deploying a production app.
     app.debug = True
-    # app.run(threaded=True)
-    app.run(host='0.0.0.0')
+    app.run(threaded=True)
+    # app.run(host='0.0.0.0')
