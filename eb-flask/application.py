@@ -1,13 +1,34 @@
 from flask import Flask, request, session, jsonify
+# from flask_sqlalchemy import SQLAlchemy
 import stripe
 import smtplib
 from email.mime.text import MIMEText
-from pusher import Pusher
+from database import database_api
+# from pusher import Pusher
 # from validate_email import validate_email
 # from email_validator import validate_email, EmailNotValidError
 
 app = Flask(__name__)
+app.register_blueprint(database_api)
+# SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}".format(
+#     username="noahbragg",
+#     password="CookieDatabase",
+#     hostname="noahbragg.mysql.pythonanywhere-services.com",
+#     databasename="noahbragg$default",
+# )
+# app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
+# app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
+# app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+# class Baker(db.Model):
+
+#     __tablename__ = "bakers"
+
+#     id = db.Column(db.Integer, primary_key=True)
+#     content = db.Column(db.String(4096))
+
+stripe.api_key = 
+app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 
 
 @app.route('/ephemeral_keys', methods = ['POST'])
@@ -30,9 +51,19 @@ def email():
 
 @app.route('/send_new_baker_email', methods = ['GET'])
 def sendNewBakerEmail():
-    email= request.args.get('email')
+    email = request.args.get('email')
     to = ["noahbragg@cedarville.edu"]
     sendEmail(to, "New Baker Interested!", "Hello Noah,\n\nThere is a new baker with email " + email + " who is interested in becoming a baker. Go ahead and give them some info and see if they would be a good fit to join the Crowd Cookie team!!!\n\nSincerely,\nCrowd Cookie Bot")
+    return "success sending email"
+
+@app.route('/send_rating_email', methods = ['GET'])
+def sendRatingEmail():
+    rating = request.args.get('rating')
+    comments = request.args.get('comments')
+    isWarm = request.args.get('isWarm')
+    isRecommend = request.args.get('isRecommend')
+    to = ["noahbragg@cedarville.edu"]
+    sendEmail(to, "Crowd Cookie Rating", "Hello Noah,\n\nRating: " + rating + "\n\nWere the cookies warm? " + isWarm + "\n\nWould you recommend Crowd Cookie to a friend? " + isRecommend + "\n\nComments: " + comments + "\n\nHope it was a good review!\n\nSincerely,\nCrowd Cookie Bot")
     return "success sending email"
 
 
@@ -140,6 +171,8 @@ def sendEmail(to, subject, message):
 
     sender = "noahbragg@cedarville.edu"
 
+    EMAIL_HOST_USER = ""
+    EMAIL_HOST_PASSWORD = ""
 
     # me == the sender's email address
     # you == the recipient's email address
@@ -174,7 +207,7 @@ def setIsCookAvailable():
 
 @app.route('/notify_users', methods = ['GET'])
 def notifyUsers():
-    pusher = Pusher(app_id=u'422470', key=u'd05669f4df7a1f96f929', secret=u'67125152b0087bcd5a4c', cluster=u'us2')
+    pusher = Pusher(app_id=u'', key=u'd05669f4df7a1f96f929', secret=u'', cluster=u'us2')
 
     pusher.notify(['cook_available'], {
       'gcm': {
@@ -191,5 +224,5 @@ if __name__ == "__main__":
     # Setting debug to True enables debug output. This line should be
     # removed before deploying a production app.
     app.debug = True
-    app.run(threaded=True)
-    # app.run(host='0.0.0.0')
+    # app.run(threaded=True)
+    app.run(host='0.0.0.0')
